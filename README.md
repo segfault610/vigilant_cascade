@@ -32,3 +32,32 @@ The system orchestrates a responsive safety loop across three devices:
 
 ACS712 Current Sensor INMP441 Microphone Module Single-Channel Electrical Relay Module 12V Power Supply Adapter Breadboard M-M Jumper wires x 10 M-F Jumper wires x 10 F-F Jumper wires x 10 Red and Green LEDs 
 
+> **INMP441 wiring note:** the mic's `L/R` pin must be tied to GND (left channel) or 3V3 (right channel) to match `format=I2S.MONO` in the capture scripts. A floating `L/R` pin is the most common reason the mic appears to capture silence.
+
+## **5. Current Implementation Status**
+
+This README describes the full three-stage hackathon vision. As of this branch, here's what's actually implemented vs. still planned:
+
+**Implemented:**
+- Current-sensor capture with median-filter denoising, a rolling baseline, and a stall/jam safety cutoff (`src/current_sensor.py`)
+- Microphone (INMP441/I2S) capture, now with a proper DMA buffer size, 24-bit sample decoding, and a startup self-test that flags silent/dead-mic wiring (`src/mic_sensor.py`, `src/mic_test.py`)
+- A host-side script to turn raw mic captures into windowed features (RMS energy, peak amplitude, zero-crossing rate) so audio data can be used the same way the current-sensor CSVs are (`src/audio_features.py`)
+- A 1D-CNN trained on current-sensor data to classify normal vs. slowed motor behavior, with a shared scaler (no per-class leakage), a held-out test split, and reported accuracy (`src/VigilantCascade.ipynb`)
+- Live inference from serial data using the exact scaler saved at training time (`models/motor_scaler.joblib`), instead of a hardcoded normalization guess
+
+**Not yet implemented (still just described above):**
+- Discrete Wavelet Transform stage
+- Deployment to the Arduino Uno Q (current code targets a MicroPython/RP2040-class board)
+- Snapdragon/Qualcomm AI Hub NPU inference and RUL (remaining useful life) regression
+- Mobile dashboard and haptic overrides
+- Using acoustic features (from `audio_features.py`) in the classifier — currently only the current sensor feeds the model
+
+## **6. Setup**
+
+```bash
+pip install -r requirements.txt
+jupyter notebook src/VigilantCascade.ipynb
+```
+
+Training the notebook produces `models/motor_model_scratch.pth` and `models/motor_scaler.joblib`. Both are needed for live inference — the scaler must match the one used at training time or predictions will be wrong.
+

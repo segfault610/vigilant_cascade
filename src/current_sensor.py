@@ -57,6 +57,7 @@ def capture_for_inference(label, duration_sec=60):
         print(f"Capture complete. {samples_taken} samples saved.")
 
 # Workflow commands:
-# 1. capture_for_inference("normal")
-# 2. capture_for_inference("slowed")
+#capture_for_inference("normal")
+#capture_for_inference("slowed")
 # 3. capture_for_inference("stalled")
+

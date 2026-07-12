@@ -42,14 +42,14 @@ try:
         experimental_delegates=[delegate]
     )
 except Exception as e:
-    print(f"⚠️ NPU delegate failed: {e}")
+    print(f"NPU delegate failed: {e}")
     print("Falling back to CPU only.")
     interpreter = Interpreter(model_path=MODEL_PATH)
 
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
-print("✅ Model loaded.")
+print("Model loaded.")
 
 # ===================== INFERENCE FUNCTION =====================
 def predict_window(samples: list):
@@ -75,12 +75,12 @@ def predict_window(samples: list):
 
 # ===================== RPC HANDLER =====================
 def save_window(window_data_str: str):
-    print(f"📥 Received window: {window_data_str[:50]}...")
+    print(f"Received window: {window_data_str[:50]}...")
     
     try:
         parts = window_data_str.split(',')
         if len(parts) != 129:
-            print(f"❌ Invalid window: expected 129 values, got {len(parts)}")
+            print(f"Invalid window: expected 129 values, got {len(parts)}")
             Bridge.call("command", "ERROR")
             return "ERROR: Invalid data format"
         
@@ -91,9 +91,9 @@ def save_window(window_data_str: str):
         # ---- Run inference ----
         try:
             pred_class, confidence = predict_window(samples)
-            print(f"🧠 Prediction: {pred_class} (conf={confidence:.3f})")
+            print(f"Prediction: {pred_class} (conf={confidence:.3f})")
         except Exception as e:
-            print(f"⚠️ Inference failed: {e}")
+            print(f"Inference failed: {e}")
             pred_class = "Unknown"
             confidence = 0.0
         
@@ -102,7 +102,7 @@ def save_window(window_data_str: str):
             f.write("sample_index,value,timestamp,prediction,confidence\n")
             for i, val in enumerate(samples):
                 f.write(f"{i},{val},{received_time},{pred_class},{confidence}\n")
-        print(f"✅ Saved to {INDIVIDUAL_CSV}")
+        print(f"Saved to {INDIVIDUAL_CSV}")
         
         # ---- Append to consolidated CSV ----
         file_exists = CONSOLIDATED_CSV.exists()
@@ -112,16 +112,16 @@ def save_window(window_data_str: str):
                 f.write(",".join(header) + "\n")
             row = [str(timestamp), received_time, pred_class, str(confidence)] + [str(v) for v in samples]
             f.write(",".join(row) + "\n")
-        print(f"✅ Appended to {CONSOLIDATED_CSV}")
+        print(f"Appended to {CONSOLIDATED_CSV}")
         
         # ---- Send ACK back to STM32 ----
         Bridge.call("command", "ACK")
-        print("✅ ACK sent to STM32")
+        print("ACK sent to STM32")
         
         return "ACK: Window saved and classified"
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         return f"ERROR: {str(e)}"
 
 # ===================== RPC REGISTRATION =====================
@@ -138,7 +138,7 @@ def loop():
 
 if __name__ == "__main__":
     print("="*60)
-    print("🚀 DRAGONWING FAULT CLASSIFIER")
+    print("DRAGONWING FAULT CLASSIFIER")
     print("="*60)
     print(f"Individual CSV : {INDIVIDUAL_CSV.absolute()}")
     print(f"Consolidated CSV: {CONSOLIDATED_CSV.absolute()}")

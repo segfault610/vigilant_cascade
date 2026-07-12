@@ -10,9 +10,12 @@ const int WINDOW_SIZE = 128;
 float sampleBuffer[WINDOW_SIZE];
 float tempBuffer[WINDOW_SIZE];
 int bufferIndex = 0;
-const float STALL_RATIO_THRESHOLD = 4.0f;
+const float STALL_RATIO_THRESHOLD = 5.0f; // originally 4.0f
 const unsigned long CURRENT_SAMPLE_INTERVAL_US = 1200;
 unsigned long lastSampleTimeUs = 0;
+
+// Shunt resistor value in ohms (adjust to match your actual shunt)
+const float SHUNT_RESISTOR = 0.1f;  // 100 mOhm - typical for INA219
 
 // State
 enum State { COLLECTING_WINDOW, ANALYZING, SENDING_WINDOW };
@@ -53,13 +56,11 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) { delay(10); }
     
-    // Initialize Bridge
     Bridge.begin();
     Bridge.provide("command", receiveCommand);
     
     Serial.println("=== STM32 Fault Detector with Bridge ===");
     
-    // Setup INA219
     Wire.begin();
     Wire.setClock(400000);
     delay(100);
@@ -108,7 +109,11 @@ void collectSamples() {
             int16_t rawShuntRegister = (int16_t)((msb << 8) | lsb);
             float shunt_mV = (float)rawShuntRegister * 0.01f;
             
-            sampleBuffer[bufferIndex] = shunt_mV;
+            // Convert shunt voltage to current in mA
+            // I = V / R, where V is in volts, R in ohms
+            float current_mA = (shunt_mV / 1000.0f) / SHUNT_RESISTOR * 1000.0f;
+            
+            sampleBuffer[bufferIndex] = current_mA;
             bufferIndex++;
             
             if (bufferIndex >= WINDOW_SIZE) {
@@ -160,12 +165,10 @@ void sendWindowToLinux() {
         windowData += "," + String(sampleBuffer[i], 4);
     }
     
-    // Call the Linux function "save_window"
     bool result = Bridge.call("save_window", windowData);
     
     if (result) {
         Serial.println("Window sent, waiting for ACK...");
-        // The ACK will come via the "command" callback
     } else {
         Serial.println("Failed to send! Retrying...");
         currentState = COLLECTING_WINDOW;

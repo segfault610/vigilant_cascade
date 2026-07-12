@@ -52,7 +52,7 @@ def save_window(label, samples, timestamp_ms):
             # raw and baseline use the same timestamp; delta = 0
             writer.writerow([timestamp_ms, timestamp_ms, 0.0, val])
 
-    print(f"✅ Appended window to {csv_path}")
+    print(f"Appended window to {csv_path}")
 
 def main(port):
     try:
